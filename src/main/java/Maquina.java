@@ -1,4 +1,3 @@
-package main.java;
 
 public class Maquina {
     private Integer id;
@@ -24,6 +23,6 @@ public class Maquina {
 
     @Override
     public String toString() {
-        return "Maquina " + id + ", Aplicativo= " + nome + ", Uso de GPU= " + uso + "%";
+        return "| Maquina " + id + " | Aplicativo= " + nome + " | Uso de GPU: " + uso + "% |";
     }
 }

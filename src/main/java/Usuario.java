@@ -1,4 +1,3 @@
-package main.java;
 
 public class Usuario {
     private String nome;
@@ -25,7 +24,7 @@ public class Usuario {
 
     @Override
     public String toString() {
-        return "Usuario " + " nome= " + nome + ", adress= " + adress + ", phone=" + phone;
+        return "| Usuario " + " Nome: " + nome + " | Endereço: " + adress + " | Telefone:" + phone + " |";
     }
 }
 
