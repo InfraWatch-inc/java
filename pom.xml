@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.example</groupId>
+    <artifactId>exemplo_maven</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>23</maven.compiler.source>
+        <maven.compiler.target>23</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- dependencia são blocos de código pronto, criados para facilitar tarefas comuns ou especificas no mundo da programação-->
+        <!-- dependencias são distribuídas publicamente em repositórios centrais (nuvem) ou internamente dentro das próprias organizações-->
+        <!-- Maven é o principal gerenciador  de dependencias da plataforma java-->
+        <!-- toda configuração é realizada em arquivo chamado POM.XML-->
+        <!-- Como funciona? Temos um arquivo de configuração em que adicionamos as dependencias necessárias para o nosso projeto -->
+        <!-- Por exemplo quero adicionar uma dependencia X, no momento em que compilamos o código, ele lê a configuração do arquivo-->
+        <!-- Depois verifica o repositório Local, se esta baixado, se não estiver ele pega na nuvem e baixa no repositório local-->
+        <!-- Dessa forma conseguimos construir e executar o Maven -->
+        <dependency>
+            <groupId>com.github.javafaker</groupId>
+            <artifactId>javafaker</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+    </dependencies>
+
+</project>

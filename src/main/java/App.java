@@ -1,5 +1,3 @@
-package br.com.sptech.school;
-
 import com.github.javafaker.Faker;
 
 import java.util.ArrayList;
