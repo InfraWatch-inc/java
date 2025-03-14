@@ -6,33 +6,53 @@ import java.util.List;
 public class App {
     public static void main(String[] args) {
         Faker faker = new Faker();
-        List<String> listaNome = new ArrayList<>();
-        List<Integer> listaUso = new ArrayList<>();
+        List<Maquina> listaMaquina = new ArrayList<>();
+        List<Usuario> listaUsuario = new ArrayList<>();
 
-        listaNome.add(faker.app().name());
-        listaNome.add(faker.app().name());
-        listaNome.add(faker.app().name());
-        listaNome.add(faker.app().name());
-        listaNome.add(faker.app().name());
+        preencherListaMaquina(listaMaquina, 10);
+        preencherListaUsuario(listaUsuario, 10);
 
-        listaUso.add(faker.number().numberBetween(0,100));
-        listaUso.add(faker.number().numberBetween(0,100));
-        listaUso.add(faker.number().numberBetween(0,100));
-        listaUso.add(faker.number().numberBetween(0,100));
-        listaUso.add(faker.number().numberBetween(0,100));
-
-        System.out.println(listaNome);
-        System.out.println(listaUso);
-
-        Ordenacao.ordernarUso(listaUso);
-        Ordenacao.ordernarNome(listaNome);
-
-        for (Integer number : listaUso){
-            System.out.println("Uso: " + number + "%");
-        }
-        for (String nome : listaNome){
-            System.out.println("Aplicativo: " + nome);
+        for (Maquina item : listaMaquina){
+            System.out.println(item);
         }
 
+        System.out.println();
+        Ordenacao.ordernarUso(listaMaquina);
+
+        for (Maquina item : listaMaquina){
+            System.out.println(item);
+        }
+
+        System.out.println();
+
+        for (Usuario user : listaUsuario){
+            System.out.println(user);
+        }
+
+        System.out.println();
+        Ordenacao.ordernarUsuario(listaUsuario);
+
+        for (Usuario user : listaUsuario){
+            System.out.println(user);
+        }
+
+    }
+
+    public static void preencherListaMaquina(List<Maquina> lista, int qtdInteracao){
+        Faker faker = new Faker();
+
+        for (int i = 0; i < qtdInteracao; i++) {
+            Maquina m1 = new Maquina(i + 1, faker.app().name(), faker.number().numberBetween(1,100));
+            lista.add(m1);
+        }
+    }
+
+    public static void preencherListaUsuario(List<Usuario> lista, int qtdInteracao){
+        Faker faker = new Faker();
+
+        for (int i = 0; i < qtdInteracao; i++) {
+            Usuario u1 = new Usuario(faker.name().fullName(), faker.address().fullAddress(), faker.phoneNumber().cellPhone());
+            lista.add(u1);
+        }
     }
 }
