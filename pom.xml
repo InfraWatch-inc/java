@@ -19,7 +19,7 @@
         <!-- Pesquisa JavaFaker - compila a versão 1.0.2-->
         <!-- dependencia são blocos de código pronto, criados para facilitar tarefas comuns ou especificas no mundo da programação-->
         <!-- dependencias são distribuídas publicamente em repositórios centrais (nuvem) ou internamente dentro das próprias organizações-->
-        <!-- Maven é o principal gerenciador  de dependencias da plataforma java-->
+        <!-- Maven é o principal gerenciador de dependencias da plataforma java-->
         <!-- toda configuração é realizada em arquivo chamado POM.XML-->
         <!-- Como funciona? Temos um arquivo de configuração em que adicionamos as dependencias necessárias para o nosso projeto -->
         <!-- Por exemplo quero adicionar uma dependencia X, no momento em que compilamos o código, ele lê a configuração do arquivo-->

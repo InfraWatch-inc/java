@@ -44,7 +44,7 @@ public class App {
         Faker faker = new Faker();
 
         for (int i = 0; i < qtdInteracao; i++) {
-            Maquina m1 = new Maquina(i + 1, faker.app().name(), faker.number().numberBetween(1, 100));
+            Maquina m1 = new Maquina(i + 1, faker.app().name(), faker.number().numberBetween(1, 100), faker.number().numberBetween(1, 100), faker.number().numberBetween(1, 100), faker.number().numberBetween(1, 100));
             lista.add(m1);
         }
     }
