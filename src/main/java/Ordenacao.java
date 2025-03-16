@@ -32,4 +32,22 @@ public class Ordenacao {
             list.set(indMenor, algs); // valor de indice Menor se torna o valor de i
         }
     }
+    public static int buscaBinaria(List<Maquina> list, int x){
+        int inicio = 0;
+        int fim = list.size() - 1;
+        int meio;
+
+        while (inicio <= fim){
+            meio = (inicio + fim) / 2;
+
+            if (x == list.get(meio).getId()){
+                return meio;
+            } else if (x > list.get(meio).getId()){
+                inicio = meio + 1;
+            } else if(x < list.get(meio).getId()){
+                fim = meio - 1;
+            }
+        }
+        return -1;
+    }
 }
