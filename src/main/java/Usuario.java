@@ -30,7 +30,7 @@ public class Usuario {
 
     @Override
     public String toString() {
-        return "| Usuario " + " Nome: " + nome + "| Email: " + email + " | Endereço: " + adress + " | Telefone:" + phone + " |";
+        return "\n--------------------------------------------------------------------\n| Usuario " + " Nome: " + nome + "\n| Email: " + email + "\n| Endereço: " + adress + "\n| Telefone:" + phone + "\n--------------------------------------------------------------------\n";
     }
 }
 
