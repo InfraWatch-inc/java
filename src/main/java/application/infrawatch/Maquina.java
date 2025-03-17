@@ -1,3 +1,4 @@
+package application.infrawatch;
 
 public class Maquina {
     private Integer id;
@@ -41,6 +42,6 @@ public class Maquina {
 
     @Override
     public String toString() {
-        return "--------------------------------------------\n| Maquina " + id + " | Aplicativo = " + nome + "\n--------------------------------------------\n| Componentes: \n| Uso de GPU: " + usoGPU + "% \n| Uso de CPU: " + usoCPU + "% \n| Uso da Memória RAM: " + usoRAM + "% \n| Uso de Disco: " + usoDisco + "% \n--------------------------------------------";
+        return "--------------------------------------------\n| application.infrawatch.Maquina " + id + " | Aplicativo = " + nome + "\n--------------------------------------------\n| Componentes: \n| Uso de GPU: " + usoGPU + "% \n| Uso de CPU: " + usoCPU + "% \n| Uso da Memória RAM: " + usoRAM + "% \n| Uso de Disco: " + usoDisco + "% \n--------------------------------------------";
     }
 }

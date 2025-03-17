@@ -1,3 +1,4 @@
+package application.infrawatch;
 
 public class Usuario {
     private String nome;
@@ -30,6 +31,6 @@ public class Usuario {
 
     @Override
     public String toString() {
-        return "------------------------------------------------------------------------------\n| Usuario " + " Nome: " + nome + "\n| Email: " + email + "\n| Endereço: " + adress + "\n| Telefone:" + phone + "\n------------------------------------------------------------------------------";
+        return "------------------------------------------------------------------------------\n| application.infrawatch.Usuario " + " Nome: " + nome + "\n| Email: " + email + "\n| Endereço: " + adress + "\n| Telefone:" + phone + "\n------------------------------------------------------------------------------";
     }
 }

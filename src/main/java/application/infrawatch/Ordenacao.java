@@ -1,3 +1,5 @@
+package application.infrawatch;
+
 import com.github.javafaker.Faker;
 
 import java.util.List;
