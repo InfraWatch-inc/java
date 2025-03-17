@@ -8,8 +8,8 @@ public class App {
         List<Maquina> listaMaquina = new ArrayList<>();
         List<Usuario> listaUsuario = new ArrayList<>();
 
-        preencherListaMaquina(listaMaquina, 10);
-        preencherListaUsuario(listaUsuario, 10);
+        preencherListaMaquina(listaMaquina, 5);
+        preencherListaUsuario(listaUsuario, 5);
 
         System.out.println("Máquina antes da ordenação:");
         for (Maquina item : listaMaquina) {

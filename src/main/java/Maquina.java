@@ -41,6 +41,6 @@ public class Maquina {
 
     @Override
     public String toString() {
-        return "\n----------------------------------\n| Maquina " + id + " | Aplicativo = " + nome + "\n----------------------------------\n| Componentes: \n| Uso de GPU: " + usoGPU + "% \n| Uso de CPU: " + usoCPU + "% \n| Uso da Memória RAM: " + usoRAM + "% \n| Uso de Disco: " + usoDisco + "% \n----------------------------------\n";
+        return "--------------------------------------------\n| Maquina " + id + " | Aplicativo = " + nome + "\n--------------------------------------------\n| Componentes: \n| Uso de GPU: " + usoGPU + "% \n| Uso de CPU: " + usoCPU + "% \n| Uso da Memória RAM: " + usoRAM + "% \n| Uso de Disco: " + usoDisco + "% \n--------------------------------------------";
     }
 }
