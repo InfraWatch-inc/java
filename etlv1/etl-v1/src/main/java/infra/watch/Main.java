@@ -9,7 +9,11 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 
 public class Main implements RequestHandler<S3Event, String> {
 
@@ -50,5 +54,28 @@ public class Main implements RequestHandler<S3Event, String> {
             context.getLogger().log("Erro: " + e.getMessage());
             return "Erro no processamento";
         }
+    }
+
+
+    private void salvarCapturasAgrupadas(List<Captura> capturas) {
+        Map<String, List<Captura>> infoServidores = new HashMap<String, List<Captura>>() {
+        };
+
+        for (int i = 0; i < capturas.size(); i++) {
+            String servidorAtual = capturas.get(i).getServidor();
+            String dataHoraAtual = capturas.get(i).getDataHora();
+
+            List<Captura> listaCapturasAtuais = new ArrayList<>();
+
+            for (int j = i; j >= 0; j--) {
+                if (capturas.get(j).getServidor().equals(servidorAtual) &&
+                        capturas.get(j).getDataHora().equals(dataHoraAtual)) {
+                    listaCapturasAtuais.add(capturas.get(j));
+                }
+            }
+
+            infoServidores.put(String.format("%s", dataHoraAtual), listaCapturasAtuais);
+        }
+
     }
 }
