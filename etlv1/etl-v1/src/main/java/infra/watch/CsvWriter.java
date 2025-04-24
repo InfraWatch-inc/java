@@ -8,32 +8,36 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
+import java.util.*;
 
 public class CsvWriter {
 
-    public ByteArrayOutputStream writeCsv(List<Stock> stocks) throws IOException {
-        // Criar um CSV em memória utilizando ByteArrayOutputStream
+    public ByteArrayOutputStream writeCsv(List<Map<String, Object>> records) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
-        CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT.withHeader("Symbol", "Company Name", "Price", "Volume", "Date"));
 
-        // Processar e escrever cada objeto no CSV
-        for (Stock stock : stocks) {
-            csvPrinter.printRecord(
-                    stock.getSymbol(),
-                    stock.getCompanyName(),
-                    stock.getPrice(),
-                    stock.getVolume(),
-                    stock.getDate()
-            );
+        // Coletamos todos os cabeçalhos (chaves) únicos dos objetos
+        Set<String> headers = new LinkedHashSet<>();
+        for (Map<String, Object> record : records) {
+            headers.addAll(record.keySet());
         }
 
-        // Fechar o CSV para garantir que todos os dados sejam escritos
+        // Cria o CSVPrinter com os headers descobertos dinamicamente
+        CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT.withDelimiter(';').withHeader(headers.toArray(new String[0])));
+
+        // Para cada registro, escreve os valores dos headers na mesma ordem
+        for (Map<String, Object> record : records) {
+            List<String> row = new ArrayList<>();
+            for (String header : headers) {
+                Object value = record.get(header);
+                row.add(value != null ? value.toString() : "");
+            }
+            csvPrinter.printRecord(row);
+        }
+
         csvPrinter.flush();
         writer.close();
 
-        // Retornar o ByteArrayOutputStream que contém o CSV gerado
         return outputStream;
     }
 }

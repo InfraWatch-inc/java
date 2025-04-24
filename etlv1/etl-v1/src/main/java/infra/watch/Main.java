@@ -9,73 +9,85 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 public class Main implements RequestHandler<S3Event, String> {
 
-    // Criação do cliente S3 para acessar os buckets
+    // Aqui estou criando um "cliente" para conseguir acessar arquivos que estão no S3
     private final AmazonS3 s3Client = AmazonS3ClientBuilder.defaultClient();
 
-    // Bucket de destino para o CSV gerado
-    private static final String DESTINATION_BUCKET = "s3-infrawatch-prata";
+    // Esse é o nome do bucket para onde vou mandar os CSVs prontos
+    private static final String DESTINATION_BUCKET = "testebucketprata";
 
     @Override
     public String handleRequest(S3Event s3Event, Context context) {
-
-        // Extraímos o nome do bucket de origem e a chave do arquivo JSON
+        // Pego o nome do bucket de origem (de onde veio o JSON)
         String sourceBucket = s3Event.getRecords().get(0).getS3().getBucket().getName();
+        // Pego o nome do arquivo (o JSON) que chegou no bucket
         String sourceKey = s3Event.getRecords().get(0).getS3().getObject().getKey();
 
         try {
-            // Leitura do arquivo JSON do bucket de origem
+            // Abro o arquivo JSON que veio do S3
             InputStream s3InputStream = s3Client.getObject(sourceBucket, sourceKey).getObjectContent();
 
-            // Conversão do JSON para uma lista de objetos Stock usando o Mapper
+            // Converto esse JSON para uma lista de mapas (um mapa por linha de dados)
             Mapper mapper = new Mapper();
-            List<Stock> stocks = mapper.map(s3InputStream);
+            List<Map<String, Object>> registros = mapper.map(s3InputStream);
 
-            // Geração do arquivo CSV a partir da lista de Stock usando o CsvWriter
+            // Crio um mapa para separar os dados por servidor
+            Map<String, List<Map<String, Object>>> registrosPorServidor = new HashMap<>();
+
+            for (Map<String, Object> registro : registros) {
+                // Aqui eu tento pegar o valor do campo "servidor" de forma segura
+                String servidor;
+                if (registro.containsKey("servidor") && registro.get("servidor") != null) {
+                    servidor = registro.get("servidor").toString();
+                } else {
+                    servidor = "desconhecido"; // Se não tiver o campo, coloco como "desconhecido"
+                }
+
+                // Adiciono o registro à lista correspondente a esse servidor
+                if (!registrosPorServidor.containsKey(servidor)) {
+                    registrosPorServidor.put(servidor, new ArrayList<>());
+                }
+                registrosPorServidor.get(servidor).add(registro);
+            }
+
+            // Crio o objeto que vai me ajudar a transformar os dados em CSV
             CsvWriter csvWriter = new CsvWriter();
-            ByteArrayOutputStream csvOutputStream = csvWriter.writeCsv(stocks);
 
-            // Converte o ByteArrayOutputStream para InputStream para enviar ao bucket de destino
-            InputStream csvInputStream = new ByteArrayInputStream(csvOutputStream.toByteArray());
+            // Para cada grupo de registros (um por servidor), gero um CSV separado
+            for (Map.Entry<String, List<Map<String, Object>>> entry : registrosPorServidor.entrySet()) {
+                String servidor = entry.getKey();
+                List<Map<String, Object>> registrosServidor = entry.getValue();
 
-            // Envio do CSV para o bucket de destino
-            s3Client.putObject(DESTINATION_BUCKET, sourceKey.replace(".json", ".csv"), csvInputStream, null);
+                // Escrevo os registros desse servidor em CSV
+                ByteArrayOutputStream csvOutputStream = csvWriter.writeCsv(registrosServidor);
+                InputStream csvInputStream = new ByteArrayInputStream(csvOutputStream.toByteArray());
+
+                // Crio o nome do arquivo CSV com o nome do servidor e a data/hora
+                String nomeCsv = gerarNomeArquivo(sourceKey, servidor);
+
+                // Mando esse arquivo para o bucket de destino
+                s3Client.putObject(DESTINATION_BUCKET, nomeCsv, csvInputStream, null);
+            }
 
             return "Sucesso no processamento";
         } catch (Exception e) {
-            // Tratamento de erros e log do contexto em caso de exceção
+            // Se der erro em qualquer parte, mostro o erro no log do Lambda
             context.getLogger().log("Erro: " + e.getMessage());
             return "Erro no processamento";
         }
     }
 
+    // Função que gera um nome único para o arquivo CSV com data/hora atual
+    private String gerarNomeArquivo(String nomeOriginal, String servidor) {
+        // Se o nome terminar com ".json", removo essa parte
+        String base = nomeOriginal.endsWith(".json") ? nomeOriginal.replace(".json", "") : nomeOriginal;
 
-    private void salvarCapturasAgrupadas(List<Captura> capturas) {
-        Map<String, List<Captura>> infoServidores = new HashMap<String, List<Captura>>() {
-        };
-
-        for (int i = 0; i < capturas.size(); i++) {
-            String servidorAtual = capturas.get(i).getServidor();
-            String dataHoraAtual = capturas.get(i).getDataHora();
-
-            List<Captura> listaCapturasAtuais = new ArrayList<>();
-
-            for (int j = i; j >= 0; j--) {
-                if (capturas.get(j).getServidor().equals(servidorAtual) &&
-                        capturas.get(j).getDataHora().equals(dataHoraAtual)) {
-                    listaCapturasAtuais.add(capturas.get(j));
-                }
-            }
-
-            infoServidores.put(String.format("%s", dataHoraAtual), listaCapturasAtuais);
-        }
-
+        // Junto tudo: nome original, nome do servidor
+        return base + "-" + servidor + "-" + ".csv";
     }
 }
