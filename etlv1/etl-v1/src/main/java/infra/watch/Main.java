@@ -19,7 +19,7 @@ public class Main implements RequestHandler<S3Event, String> {
     private final AmazonS3 s3Client = AmazonS3ClientBuilder.defaultClient();
 
     // Esse é o nome do bucket para onde vou mandar os CSVs prontos
-    private static final String DESTINATION_BUCKET = "testebucketprata";
+    private static final String DESTINATION_BUCKET = "infrawatch-prata";
 
     @Override
     public String handleRequest(S3Event s3Event, Context context) {
