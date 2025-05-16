@@ -5,15 +5,18 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-public class Main implements RequestHandler<S3Event, String> {
+public class Main implements RequestHandler<S3Event, String>, Mapper, CsvWriter{
 
     // Aqui estou criando um "cliente" para conseguir acessar arquivos que estão no S3
     private final AmazonS3 s3Client = AmazonS3ClientBuilder.defaultClient();
@@ -33,8 +36,7 @@ public class Main implements RequestHandler<S3Event, String> {
             InputStream s3InputStream = s3Client.getObject(sourceBucket, sourceKey).getObjectContent();
 
             // Converto esse JSON para uma lista de mapas (um mapa por linha de dados)
-            Mapper mapper = new Mapper();
-            List<Map<String, Object>> registros = mapper.map(s3InputStream);
+            List<Map<String, Object>> registros = this.map(s3InputStream);
 
             // Crio um mapa para separar os dados por servidor
             Map<String, List<Map<String, Object>>> registrosPorServidor = new HashMap<>();
@@ -55,16 +57,13 @@ public class Main implements RequestHandler<S3Event, String> {
                 registrosPorServidor.get(servidor).add(registro);
             }
 
-            // Crio o objeto que vai me ajudar a transformar os dados em CSV
-            CsvWriter csvWriter = new CsvWriter();
-
             // Para cada grupo de registros (um por servidor), gero um CSV separado
             for (Map.Entry<String, List<Map<String, Object>>> entry : registrosPorServidor.entrySet()) {
                 String servidor = entry.getKey();
                 List<Map<String, Object>> registrosServidor = entry.getValue();
 
                 // Escrevo os registros desse servidor em CSV
-                ByteArrayOutputStream csvOutputStream = csvWriter.writeCsv(registrosServidor);
+                ByteArrayOutputStream csvOutputStream = this.writeCsv(registrosServidor);
                 InputStream csvInputStream = new ByteArrayInputStream(csvOutputStream.toByteArray());
 
                 // Crio o nome do arquivo CSV com o nome do servidor e a data/hora
@@ -89,5 +88,45 @@ public class Main implements RequestHandler<S3Event, String> {
 
         // Junto tudo: nome original, nome do servidor
         return base + "-" + servidor + "-" + ".csv";
+    }
+
+    @Override
+    public List<Map<String, Object>> map(InputStream inputStream) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        // Biblioteca que mapeia dados JSON para objetos em Java
+
+        // Converte o JSON para uma lista de mapas: cada item é uma linha do CSV
+        return mapper.readValue(inputStream, new TypeReference<List<Map<String, Object>>>() {});
+        //readValue para ler o conteúdo da inputStream e transformar num tipo Java
+    }
+
+    @Override
+    public ByteArrayOutputStream writeCsv(List<Map<String, Object>> records) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+
+        // Coletamos todos os cabeçalhos (chaves) únicos dos objetos
+        Set<String> headers = new LinkedHashSet<>();
+        for (Map<String, Object> record : records) {
+            headers.addAll(record.keySet());
+        }
+
+        // Cria o CSVPrinter com os headers descobertos dinamicamente
+        CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT.withDelimiter(';').withHeader(headers.toArray(new String[0])));
+
+        // Para cada registro, escreve os valores dos headers na mesma ordem
+        for (Map<String, Object> record : records) {
+            List<String> row = new ArrayList<>();
+            for (String header : headers) {
+                Object value = record.get(header);
+                row.add(value != null ? value.toString() : "");
+            }
+            csvPrinter.printRecord(row);
+        }
+
+        csvPrinter.flush();
+        writer.close();
+
+        return outputStream;
     }
 }
