@@ -1,5 +1,8 @@
 package infra.watch;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,16 +15,16 @@ public class DadosPix extends DadosJson{
     }
 
     @Override
-    public String gerarNomeArquivo(String nome) {
-        // gerar nome
-        return null;
+    public String gerarNomeArquivo(String nomeAdicional) {
+        String nome = super.getNome();
+        String base = nome.endsWith(".json") ? nome.replace(".json", "") : nome;
+        return base + ".csv";
     }
 
     @Override
-    public List<Map<String, Object>> mapper(){
-        return null;
+    public void processoEtl() throws IOException{
+        // Converto esse JSON para uma lista de mapas (um mapa por linha de dados)
+        List<Map<String, Object>> registros = this.mapper();
+        // TODO
     }
-
-    @Override
-    public ByteArrayOutputStream writeCsv(List<Map<String, Object>> records) throws IOException {return null;}
 }
