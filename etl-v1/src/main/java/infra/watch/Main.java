@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-public class Main implements RequestHandler<S3Event, String>, Mapper, CsvWriter{
+public class Main implements RequestHandler<S3Event, String>{
 
     // Aqui estou criando um "cliente" para conseguir acessar arquivos que estão no S3
     private final AmazonS3 s3Client = AmazonS3ClientBuilder.defaultClient();
@@ -35,42 +35,14 @@ public class Main implements RequestHandler<S3Event, String>, Mapper, CsvWriter{
             // Abro o arquivo JSON que veio do S3
             InputStream s3InputStream = s3Client.getObject(sourceBucket, sourceKey).getObjectContent();
 
-            // Converto esse JSON para uma lista de mapas (um mapa por linha de dados)
-            List<Map<String, Object>> registros = this.map(s3InputStream);
-
-            // Crio um mapa para separar os dados por servidor
-            Map<String, List<Map<String, Object>>> registrosPorServidor = new HashMap<>();
-
-            for (Map<String, Object> registro : registros) {
-                // Aqui eu tento pegar o valor do campo "servidor" de forma segura
-                String servidor;
-                if (registro.containsKey("servidor") && registro.get("servidor") != null) {
-                    servidor = registro.get("servidor").toString();
-                } else {
-                    servidor = "desconhecido"; // Se não tiver o campo, coloco como "desconhecido"
-                }
-
-                // Adiciono o registro à lista correspondente a esse servidor
-                if (!registrosPorServidor.containsKey(servidor)) {
-                    registrosPorServidor.put(servidor, new ArrayList<>());
-                }
-                registrosPorServidor.get(servidor).add(registro);
-            }
-
-            // Para cada grupo de registros (um por servidor), gero um CSV separado
-            for (Map.Entry<String, List<Map<String, Object>>> entry : registrosPorServidor.entrySet()) {
-                String servidor = entry.getKey();
-                List<Map<String, Object>> registrosServidor = entry.getValue();
-
-                // Escrevo os registros desse servidor em CSV
-                ByteArrayOutputStream csvOutputStream = this.writeCsv(registrosServidor);
-                InputStream csvInputStream = new ByteArrayInputStream(csvOutputStream.toByteArray());
-
-                // Crio o nome do arquivo CSV com o nome do servidor e a data/hora
-                String nomeCsv = gerarNomeArquivo(sourceKey, servidor);
-
-                // Mando esse arquivo para o bucket de destino
-                s3Client.putObject(DESTINATION_BUCKET, nomeCsv, csvInputStream, null);
+            if(sourceKey.contains("pix")){
+                DadosPix dadosPix = new DadosPix(sourceKey, s3InputStream);
+                this.processoPix(dadosPix);
+            } else if(sourceKey.contains("captura")){
+                DadosCaptura dadosCaptura = new DadosCaptura(sourceKey, s3InputStream);
+                this.processoCaptura(dadosCaptura);
+            } else {
+                return "Erro no processamento";
             }
 
             return "Sucesso no processamento";
@@ -81,52 +53,49 @@ public class Main implements RequestHandler<S3Event, String>, Mapper, CsvWriter{
         }
     }
 
-    // Função que gera um nome único para o arquivo CSV com data/hora atual
-    private String gerarNomeArquivo(String nomeOriginal, String servidor) {
-        // Se o nome terminar com ".json", removo essa parte
-        String base = nomeOriginal.endsWith(".json") ? nomeOriginal.replace(".json", "") : nomeOriginal;
-
-        // Junto tudo: nome original, nome do servidor
-        return base + "-" + servidor + "-" + ".csv";
+    public void processoPix(DadosPix dadosPix){
+        // Converto esse JSON para uma lista de mapas (um mapa por linha de dados)
+        List<Map<String, Object>> registros = dadosPix.mapper();
+        // TODO
     }
 
-    @Override
-    public List<Map<String, Object>> map(InputStream inputStream) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        // Biblioteca que mapeia dados JSON para objetos em Java
+    public void processoCaptura(DadosCaptura dadosCaptura) throws IOException {
+        // Converto esse JSON para uma lista de mapas (um mapa por linha de dados)
+        List<Map<String, Object>> registros = dadosCaptura.mapper();
 
-        // Converte o JSON para uma lista de mapas: cada item é uma linha do CSV
-        return mapper.readValue(inputStream, new TypeReference<List<Map<String, Object>>>() {});
-        //readValue para ler o conteúdo da inputStream e transformar num tipo Java
-    }
+        // Crio um mapa para separar os dados por servidor
+        Map<String, List<Map<String, Object>>> registrosPorServidor = new HashMap<>();
 
-    @Override
-    public ByteArrayOutputStream writeCsv(List<Map<String, Object>> records) throws IOException {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
-
-        // Coletamos todos os cabeçalhos (chaves) únicos dos objetos
-        Set<String> headers = new LinkedHashSet<>();
-        for (Map<String, Object> record : records) {
-            headers.addAll(record.keySet());
-        }
-
-        // Cria o CSVPrinter com os headers descobertos dinamicamente
-        CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT.withDelimiter(';').withHeader(headers.toArray(new String[0])));
-
-        // Para cada registro, escreve os valores dos headers na mesma ordem
-        for (Map<String, Object> record : records) {
-            List<String> row = new ArrayList<>();
-            for (String header : headers) {
-                Object value = record.get(header);
-                row.add(value != null ? value.toString() : "");
+        for(Map<String, Object> registro : registros) {
+            // Aqui eu tento pegar o valor do campo "servidor" de forma segura
+            String servidor;
+            if(registro.containsKey("servidor") && registro.get("servidor") != null) {
+                servidor = registro.get("servidor").toString();
+            } else {
+                servidor = "desconhecido"; // Se não tiver o campo, coloco como "desconhecido"
             }
-            csvPrinter.printRecord(row);
+
+            // Adiciono o registro à lista correspondente a esse servidor
+            if(!registrosPorServidor.containsKey(servidor)) {
+                registrosPorServidor.put(servidor, new ArrayList<>());
+            }
+            registrosPorServidor.get(servidor).add(registro);
         }
 
-        csvPrinter.flush();
-        writer.close();
+        // Para cada grupo de registros (um por servidor), gero um CSV separado
+        for(Map.Entry<String, List<Map<String, Object>>> entry : registrosPorServidor.entrySet()) {
+            String servidor = entry.getKey();
+            List<Map<String, Object>> registrosServidor = entry.getValue();
 
-        return outputStream;
+            // Escrevo os registros desse servidor em CSV
+            ByteArrayOutputStream csvOutputStream = dadosCaptura.writeCsv(registrosServidor);
+            InputStream csvInputStream = new ByteArrayInputStream(csvOutputStream.toByteArray());
+
+            // Crio o nome do arquivo CSV com o nome do servidor e a data/hora
+            String nomeCsv = dadosCaptura.gerarNomeArquivo(servidor);
+
+            // Mando esse arquivo para o bucket de destino
+            s3Client.putObject(DESTINATION_BUCKET, nomeCsv, csvInputStream, null);
+        }
     }
 }
