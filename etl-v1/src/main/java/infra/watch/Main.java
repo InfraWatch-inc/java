@@ -2,13 +2,15 @@ package infra.watch;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.services.lambda.runtime.events.S3Event;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+
+import com.amazonaws.services.lambda.runtime.events.S3Event;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -37,10 +39,10 @@ public class Main implements RequestHandler<S3Event, String>{
 
             if(sourceKey.contains("pix")) {
                 DadosPix dadosPix = new DadosPix(sourceKey, s3InputStream);
-                dadosPix.processoEtl();
+                dadosPix.processoEtl(this.DESTINATION_BUCKET, this.s3Client);
             } else if(sourceKey.contains("captura")) {
                 DadosCaptura dadosCaptura = new DadosCaptura(sourceKey, s3InputStream);
-                dadosCaptura.processoEtl();
+                dadosCaptura.processoEtl(this.DESTINATION_BUCKET, this.s3Client);
             } else {
                 return "Erro no processamento";
             }

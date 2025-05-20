@@ -1,5 +1,6 @@
 package infra.watch;
 
+import com.amazonaws.services.s3.AmazonS3;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -22,7 +23,7 @@ public class DadosPix extends DadosJson{
     }
 
     @Override
-    public void processoEtl() throws IOException{
+    public void processoEtl(String bucket, AmazonS3 s3Client) throws IOException{
         // Converto esse JSON para uma lista de mapas (um mapa por linha de dados)
         List<Map<String, Object>> registros = this.mapper();
         // TODO

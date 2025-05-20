@@ -1,5 +1,6 @@
 package infra.watch;
 
+import com.amazonaws.services.s3.AmazonS3;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.csv.CSVFormat;
@@ -19,7 +20,7 @@ public abstract class DadosJson {
     }
 
     public abstract String gerarNomeArquivo(String nome);
-    public abstract void processoEtl() throws IOException;
+    public abstract void processoEtl(String bucket, AmazonS3 s3Client) throws IOException;
 
     public ByteArrayOutputStream writeCsv(List<Map<String, Object>> records) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

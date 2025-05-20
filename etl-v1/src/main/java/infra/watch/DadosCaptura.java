@@ -1,12 +1,8 @@
 package infra.watch;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
+import com.amazonaws.services.s3.AmazonS3;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class DadosCaptura extends DadosJson{
@@ -24,9 +20,10 @@ public class DadosCaptura extends DadosJson{
         return base + "-" + servidor + "-" + ".csv";
     }
 
-    public void processoCaptura(DadosCaptura dadosCaptura) throws IOException {
+    @Override
+    public void processoEtl(String bucket, AmazonS3 s3Client) throws IOException {
         // Converto esse JSON para uma lista de mapas (um mapa por linha de dados)
-        List<Map<String, Object>> registros = dadosCaptura.mapper();
+        List<Map<String, Object>> registros = super.mapper();
 
         // Crio um mapa para separar os dados por servidor
         Map<String, List<Map<String, Object>>> registrosPorServidor = new HashMap<>();
@@ -53,16 +50,14 @@ public class DadosCaptura extends DadosJson{
             List<Map<String, Object>> registrosServidor = entry.getValue();
 
             // Escrevo os registros desse servidor em CSV
-            ByteArrayOutputStream csvOutputStream = dadosCaptura.writeCsv(registrosServidor);
+            ByteArrayOutputStream csvOutputStream = super.writeCsv(registrosServidor);
             InputStream csvInputStream = new ByteArrayInputStream(csvOutputStream.toByteArray());
 
             // Crio o nome do arquivo CSV com o nome do servidor e a data/hora
-            String nomeCsv = dadosCaptura.gerarNomeArquivo(servidor);
+            String nomeCsv = this.gerarNomeArquivo(servidor);
 
             // Mando esse arquivo para o bucket de destino
-            s3Client.putObject(DESTINATION_BUCKET, nomeCsv, csvInputStream, null);
+            s3Client.putObject(bucket, nomeCsv, csvInputStream, null);
         }
     }
-
-
 }
