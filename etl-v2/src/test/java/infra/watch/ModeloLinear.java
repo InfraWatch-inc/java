@@ -1,14 +1,19 @@
 package infra.watch;
 
-import com.amazonaws.services.s3.AmazonS3;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import com.amazonaws.services.s3.AmazonS3;
 
 public class ModeloLinear {
     private List<Dados> conjuntoDados;
@@ -21,78 +26,100 @@ public class ModeloLinear {
         this.nomeArquivo = nomeArquivo;
         variaveisDependentes = new ArrayList<>();
         variaveisIndependentes = new ArrayList<>();
-        this.organizarDadosModelo();
         this.separarTiposVariaveis();
     }
 
-    private void organizarDadosModelo(){
-        // TODO realizar conversões e coisas necessárias
+    private double[][] montarMatrizX(List<Dados> variaveisIndependentes, int numObservacoes) {
+        double[][] X = new double[numObservacoes][variaveisIndependentes.size()];
+        for (int i = 0; i < variaveisIndependentes.size(); i++) {
+            List<String> valores = variaveisIndependentes.get(i).getInformacoes();
+            for (int j = 0; j < numObservacoes; j++) {
+                try{
+                    X[j][i] = Double.parseDouble(valores.get(j));
+                } catch (NumberFormatException e) {
+                    System.out.println("Erro ao converter valor para double: " + valores.get(j));
+                }                
+            }
+        }
+        return X;
+    }
+
+    private double[] montarVetorY(Dados dependente, int numObservacoes) {
+        double[] Y = new double[numObservacoes];
+        for (int i = 0; i < numObservacoes; i++) {
+            try{
+                Y[i] = Double.parseDouble(dependente.getInformacoes().get(i));
+            } catch (NumberFormatException e) {
+                System.out.println("Erro ao converter valor para double: " + dependente.getChave());
+            }
+        }
+        return Y;
     }
 
     public Boolean testarModeloLinear() {
-        // TODO testa possibilidades de modelos, e armazena os dados do modelo com maior chance, porém esta chance (R2)
-        //  deverá ser maior que 70%
+        int numObservacoes = conjuntoDados.get(0).getInformacoes().size();
 
-        // primeiro utiliza uma variavel dependente e testa o modelo multiplo com o resto
-            // se passou, salva
-            // se não, só retira uma variável independente
-        // caso nn tenha passado por essa variavel dependente, tentar com a proxima o processo
-        // caso nn tenha mais variavel dependente, encerra false
+        for (Dados varDependente : variaveisDependentes) {
+            // Lista de independentes disponíveis para esse modelo
+            List<Dados> variaveisIndependentesAtuais = new ArrayList<>(variaveisIndependentes);
 
-        // Dados: 4 observações, 2 variáveis independentes
-        double[][] X = {
-                {1, 2},
-                {2, 1},
-                {4, 3},
-                {3, 5}
-        };
+            while (!variaveisIndependentesAtuais.isEmpty()) {
+                try {
+                    double[][] X = montarMatrizX(variaveisIndependentesAtuais, numObservacoes);
+                    double[] Y = montarVetorY(varDependente, numObservacoes);
 
-        double[] Y = {5, 6, 10, 12};
+                    OLSMultipleLinearRegression regression = new OLSMultipleLinearRegression();
+                    regression.newSampleData(Y, X);
 
-        OLSMultipleLinearRegression regression = new OLSMultipleLinearRegression();
-        regression.newSampleData(Y, X); // y, x
+                    double r2 = regression.calculateRSquared();
+                    System.out.printf("Tentando com dependente [%s], R² = %.4f\n", varDependente.getChave(), r2);
 
-        double[] beta = regression.estimateRegressionParameters(); // coeficientes β
-        double r2 = regression.calculateRSquared();                // R²
+                    if (r2 >= 0.70) {
+                        return true;
+                    }
+                } catch (Exception e) {
+                    System.out.println("Erro ao calcular regressão: " + e.getMessage());
+                }
 
-        System.out.printf("Coeficientes: %s\n", java.util.Arrays.toString(beta));
-        System.out.printf("R² = %.4f\n", r2);
-         return true;
-    }
-
-    public void salvarDadosModelo(AmazonS3 s3Client, String bucket){
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
-
-        // TODO aplicar as colunas e dados de acordo com o arquivo
-        CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT.withHeader(header.get(0),header.get(1),header.get(2),header.get(3),header.get(4),header.get(5),header.get(6)));
-
-        for (Livro livro : livros) {
-            livro.setDataPublicacao();
-            livro.setPrecoDesconto();
-
-            csvPrinter.printRecord(
-                    String.format("%d", livro.getId()),
-                    String.format("%s", livro.getNome()),
-                    String.format("%s", livro.getAutor()),
-                    String.format("%s", livro.getDataPublicacao().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
-                    String.format("%s", livro.getEditora()),
-                    String.format("%.2f", livro.getPreco()),
-                    String.format("%.2f", livro.getPrecoDesconto()),
-                    String.format("%.1f", livro.getNota())
-            );
+                // Remove a última variável independente e tenta novamente
+                variaveisIndependentesAtuais.remove(variaveisIndependentesAtuais.size() - 1);
+            }
         }
 
-        csvPrinter.flush();
-        writer.close();
+        return false;
+    }
 
-        InputStream csvInputStream = new ByteArrayInputStream(outputStream.toByteArray());
+    public void salvarDadosModelo(AmazonS3 s3Client, String bucket) {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+             CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).build())) {
 
-        s3Client.putObject(bucket, this.nomeArquivo, csvInputStream, null);
+            int linhas = conjuntoDados.get(0).getInformacoes().size();
+            for (int i = 0; i < linhas; i++) {
+                List<String> linha = new ArrayList<>();
+                for (Dados d : conjuntoDados) {
+                    linha.add(d.getInformacoes().get(i));
+                }
+                csvPrinter.printRecord(linha);
+            }
+
+            csvPrinter.flush();
+            InputStream csvInputStream = new ByteArrayInputStream(outputStream.toByteArray());
+            s3Client.putObject(bucket, this.nomeArquivo, csvInputStream, null);
+
+        } catch (Exception e) {
+            System.out.println("Erro ao salvar dados no S3: " + e.getMessage());
+        }
     }
 
     private void separarTiposVariaveis(){
-        // TODO rodar para separar as variaveis e guardar nas listas
+        for (Dados dado : conjuntoDados) {
+            if (Boolean.TRUE.equals(dado.getDependente())) {
+                variaveisDependentes.add(dado);
+            } else {
+                variaveisIndependentes.add(dado);
+            }
+        }
     }
 
     public List<Dados> getVariaveisDependentes() {
