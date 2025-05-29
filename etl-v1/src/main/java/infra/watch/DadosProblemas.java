@@ -30,16 +30,26 @@ public class DadosProblemas extends DadosJson {
         List<Map<String, Object>> registroProblemas = new ArrayList<>();
 
         for (Map<String, Object> r : registros) {
-            Object valor = r.get("qtd_alerta");
-            if (valor.equals("NA")) {
+            Object valor = r.get("qtd_alertas");
+
+            if (valor == null || valor.toString().equalsIgnoreCase("NA")) {
                 r.put("qtd_alertas", 0);
+            } else if (valor instanceof String) {
+                try {
+                    int parsed = Integer.parseInt((String) valor);
+                    r.put("qtd_alertas", parsed);
+                } catch (NumberFormatException e) {
+                    r.put("qtd_alertas", 0);
+                }
             }
+
             registroProblemas.add(r);
         }
 
+
         ByteArrayOutputStream jsonOutputStream = super.writeJson(registroProblemas);
         InputStream ipt = new ByteArrayInputStream(jsonOutputStream.toByteArray());
-        String nomeArq = this.gerarNomeArquivo(null);
+        String nomeArq = this.gerarNomeArquivo("problemasAjustados");
 
         s3Client.putObject(bucket, nomeArq, ipt, null);
     }
