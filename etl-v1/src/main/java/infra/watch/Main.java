@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-public class Main implements RequestHandler<S3Event, String>{
+public class Main implements RequestHandler<S3Event, String> {
 
     // Aqui estou criando um "cliente" para conseguir acessar arquivos que estão no S3
     private final AmazonS3 s3Client = AmazonS3ClientBuilder.defaultClient();
@@ -37,18 +37,21 @@ public class Main implements RequestHandler<S3Event, String>{
             // Abro o arquivo JSON que veio do S3
             InputStream s3InputStream = s3Client.getObject(sourceBucket, sourceKey).getObjectContent();
 
-            if(sourceKey.contains("pix")) {
+            if (sourceKey.contains("pix")) {
                 DadosPix dadosPix = new DadosPix(sourceKey, s3InputStream);
                 dadosPix.processoEtl(this.DESTINATION_BUCKET, this.s3Client);
-            } else if(sourceKey.contains("captura")) {
+            } else if (sourceKey.contains("captura")) {
                 DadosCaptura dadosCaptura = new DadosCaptura(sourceKey, s3InputStream);
                 dadosCaptura.processoEtl(this.DESTINATION_BUCKET, this.s3Client);
+            } else if (sourceKey.contains("problemas")) {
+                DadosProblemas dadosproblema = new DadosProblemas(sourceKey, s3InputStream);
+                dadosproblema.processoEtl(this.DESTINATION_BUCKET, this.s3Client);
             } else {
                 return "Erro no processamento";
             }
 
             return "Sucesso no processamento";
-        } catch(Exception e) {
+        } catch (Exception e) {
             // Se der erro em qualquer parte, mostro o erro no log do Lambda
             context.getLogger().log("Erro: " + e.getMessage());
             return "Erro no processamento";

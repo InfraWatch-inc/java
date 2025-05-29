@@ -20,6 +20,7 @@ public abstract class DadosJson {
     }
 
     public abstract String gerarNomeArquivo(String nome);
+
     public abstract void processoEtl(String bucket, AmazonS3 s3Client) throws IOException;
 
     public ByteArrayOutputStream writeCsv(List<Map<String, Object>> records) throws IOException {
@@ -51,9 +52,17 @@ public abstract class DadosJson {
         return outputStream;
     }
 
-    public List<Map<String, Object>> mapper() throws IOException{
+    public ByteArrayOutputStream writeJson(List<Map<String, Object>> records) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
-        return mapper.readValue(this.s3InputStream, new TypeReference<List<Map<String, Object>>>() {});
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        mapper.writeValue(outputStream, records);
+        return outputStream;
+    }
+
+    public List<Map<String, Object>> mapper() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.readValue(this.s3InputStream, new TypeReference<List<Map<String, Object>>>() {
+        });
     }
 
     public String getNome() {
