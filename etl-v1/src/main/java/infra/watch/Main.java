@@ -44,8 +44,9 @@ public class Main implements RequestHandler<S3Event, String> {
                 DadosCaptura dadosCaptura = new DadosCaptura(sourceKey, s3InputStream);
                 dadosCaptura.processoEtl(this.DESTINATION_BUCKET, this.s3Client);
             } else if (sourceKey.contains("problemas")) {
+                String bucketProblema = "infrawatch-ouro";
                 DadosProblemas dadosproblema = new DadosProblemas(sourceKey, s3InputStream);
-                dadosproblema.processoEtl(this.DESTINATION_BUCKET, this.s3Client);
+                dadosproblema.processoEtl(bucketProblema, this.s3Client);
             } else {
                 return "Erro no processamento";
             }
